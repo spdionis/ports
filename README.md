@@ -33,7 +33,7 @@ The JSON object key will be considered as the port id.
 Success: 204 No Content
 
 
-**PUT /ports/import**
+**POST /ports/import**
 
 Example value:
 ```
