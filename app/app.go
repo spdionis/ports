@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"ports/ports"
+	"ports/controllers"
+	"ports/repositories"
+	"ports/services"
 
 	"github.com/gorilla/mux"
 	"github.com/upper/db/v4"
@@ -72,7 +74,14 @@ func (app *PortsApp) Shutdown() {
 func (app *PortsApp) Router() *mux.Router {
 	router := mux.NewRouter()
 
-	portController := ports.NewController(ports.NewRepository(app.db))
+	portRepository := repositories.NewPortRepository(app.db)
+	portFileImportService := services.NewPortFileImportService(
+		services.StreamingPortJSONParser{},
+		portRepository,
+		app.config.ImportBatchSize,
+	)
+
+	portController := controllers.NewController(portRepository, portFileImportService)
 
 	router.
 		Path("/ports").

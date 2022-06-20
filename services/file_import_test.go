@@ -1,8 +1,10 @@
-package ports
+package services
 
 import (
 	"strings"
 	"testing"
+
+	"ports/models"
 
 	"github.com/bcicen/jstream"
 )
@@ -45,13 +47,13 @@ const portsJSONTest = `
   }
 }`
 
-func TestJstreamToPort(t *testing.T) {
+func TestStreamValueToPort(t *testing.T) {
 	decoder := jstream.NewDecoder(strings.NewReader(portsJSONTest), 1).EmitKV()
 
-	ports := make([]Port, 0)
+	ports := make([]models.Port, 0)
 	for value := range decoder.Stream() {
 		kv, _ := value.Value.(jstream.KV)
-		ports = append(ports, jstreamToPort(kv, kv.Value.(map[string]interface{})))
+		ports = append(ports, streamValueToPort(kv.Value.(map[string]interface{})))
 	}
 
 	if len(ports) != 2 {
