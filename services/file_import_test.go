@@ -1,7 +1,7 @@
 package services
 
 import (
-	"strings"
+	"errors"
 	"testing"
 
 	"ports/models"
@@ -9,54 +9,63 @@ import (
 	"github.com/bcicen/jstream"
 )
 
-const portsJSONTest = `
-{
-  "AEAJM": {
-    "name": "Ajman",
-    "city": "Ajman",
-    "country": "United Arab Emirates",
-    "alias": [],
-    "regions": [],
-    "coordinates": [
-      55.5136433,
-      25.4052165
-    ],
-    "province": "Ajman",
-    "timezone": "Asia/Dubai",
-    "unlocs": [
-      "AEAJM"
-    ],
-    "code": "52000"
-  },
-  "AEAUH": {
-    "name": "Abu Dhabi",
-    "coordinates": [
-      54.37,
-      24.47
-    ],
-    "city": "Abu Dhabi",
-    "province": "Abu Z¸aby [Abu Dhabi]",
-    "country": "United Arab Emirates",
-    "alias": [],
-    "regions": [],
-    "timezone": "Asia/Dubai",
-    "unlocs": [
-      "AEAUH"
-    ],
-    "code": "52001"
-  }
-}`
+//THIS IS A VERY VERY DUMB WAY TO WRITE TESTS :D
+//Leaving the implementation of a testing suite with something like stretchr/testify as an exercise to the reader
+type fileImportTestSuite struct {
+	savePorts  int
+	openStream int
+	parse      int
+}
 
-func TestStreamValueToPort(t *testing.T) {
-	decoder := jstream.NewDecoder(strings.NewReader(portsJSONTest), 1).EmitKV()
+//yes, these are global
+var suite fileImportTestSuite
+var testBatchSize = 100
+var testFilename = "test.json"
 
-	ports := make([]models.Port, 0)
-	for value := range decoder.Stream() {
-		kv, _ := value.Value.(jstream.KV)
-		ports = append(ports, streamValueToPort(kv.Value.(map[string]interface{})))
+type portRepositoryMock struct{}
+
+func (portRepositoryMock) SavePorts(ports []models.Port) error {
+	suite.savePorts++
+	return nil
+}
+
+type jsonParserMock struct{}
+
+func (j jsonParserMock) OpenStream(filename string) (chan *jstream.MetaValue, error) {
+	if filename != testFilename {
+		return nil, errors.New("test failed")
 	}
 
-	if len(ports) != 2 {
-		t.Fail()
+	suite.openStream++
+	return nil, nil
+}
+
+func (j jsonParserMock) Parse(stream chan *jstream.MetaValue, limit int) ([]models.Port, bool, error) {
+	suite.parse++
+	if limit != testBatchSize {
+		return nil, false, errors.New("test failed")
+	}
+
+	if suite.parse == 2 {
+		return nil, true, nil
+	}
+
+	return nil, false, nil
+}
+
+func TestImportFile(t *testing.T) {
+	service := PortFileImportService{
+		parser:         jsonParserMock{},
+		portRepository: portRepositoryMock{},
+		batchSize:      testBatchSize,
+	}
+
+	err := service.ImportFile("test.json")
+	if err != nil {
+		t.FailNow()
+	}
+
+	if suite.openStream != 1 || suite.parse != 2 || suite.savePorts != 2 {
+		t.FailNow()
 	}
 }

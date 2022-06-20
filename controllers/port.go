@@ -7,26 +7,32 @@ import (
 	"net/http"
 
 	"ports/models"
-	"ports/repositories"
-	"ports/services"
 )
-
-type PortController struct {
-	repo              repositories.PortRepository
-	fileImportService services.PortFileImportService
-}
-
-func NewController(repo repositories.PortRepository, fileImportService services.PortFileImportService) PortController {
-	return PortController{
-		repo:              repo,
-		fileImportService: fileImportService,
-	}
-}
 
 type updatePortsRequest map[string]models.Port
 
 type importPortsRequest struct {
 	Filename string `json:"filename"`
+}
+
+type PortController struct {
+	repo              portRepository
+	fileImportService fileImporter
+}
+
+type portRepository interface {
+	SavePorts(ports []models.Port) error
+}
+
+type fileImporter interface {
+	ImportFile(filename string) error
+}
+
+func NewController(repo portRepository, fileImportService fileImporter) PortController {
+	return PortController{
+		repo:              repo,
+		fileImportService: fileImportService,
+	}
 }
 
 func (c PortController) UpdatePorts(w http.ResponseWriter, r *http.Request) {

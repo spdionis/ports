@@ -1,16 +1,27 @@
 package services
 
 import (
-	"ports/repositories"
+	"ports/models"
+
+	"github.com/bcicen/jstream"
 )
 
+type portRepository interface {
+	SavePorts(ports []models.Port) error
+}
+
+type jsonParser interface {
+	OpenStream(filename string) (chan *jstream.MetaValue, error)
+	Parse(stream chan *jstream.MetaValue, limit int) ([]models.Port, bool, error)
+}
+
 type PortFileImportService struct {
-	parser         StreamingPortJSONParser
-	portRepository repositories.PortRepository
+	parser         jsonParser
+	portRepository portRepository
 	batchSize      int
 }
 
-func NewPortFileImportService(p StreamingPortJSONParser, r repositories.PortRepository, batchSize int) PortFileImportService {
+func NewPortFileImportService(p jsonParser, r portRepository, batchSize int) PortFileImportService {
 	return PortFileImportService{
 		parser:         p,
 		portRepository: r,

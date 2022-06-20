@@ -16,7 +16,7 @@ func NewPortRepository(database db.Session) PortRepository {
 	}
 }
 
-func (r *PortRepository) SavePorts(ports []models.Port) error {
+func (r PortRepository) SavePorts(ports []models.Port) error {
 	query := r.db.SQL().
 		InsertInto("ports").
 		Columns(
